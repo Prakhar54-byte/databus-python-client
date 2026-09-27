@@ -124,9 +124,10 @@ def test_404_records_failed_manifest_entry(monkeypatch):
 
     class FakeGetResp:
         status_code = 404
+
         # headers = {"content-length": "0"}
         def __init__(self):
-            self.headers = {"content-length":"0"}
+            self.headers = {"content-length": "0"}
 
         def raise_for_status(self):
             import requests
@@ -194,6 +195,7 @@ def test_failed_download_does_not_create_graph_sidecar(monkeypatch, tmp_path):
 
     class FakeGet404Resp:
         status_code = 404
+
         # headers = {"content-length": "0"}
         def __init__(self):
             self.headers = {"content-length": "0"}
