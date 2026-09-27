@@ -1,18 +1,17 @@
 """Download Tests"""
 
-import json
 import bz2
+import json
 
 import pytest
 from click.testing import CliRunner
-
+from databusclient.api.download import (
+    _get_databus_versions_of_artifact,
+    _parse_version_key,
+)
 from databusclient.api.download import (
     download as api_download,
-    _parse_version_key,
-    _get_databus_versions_of_artifact,
 )
-
-from databusclient.api.download import download as api_download
 from databusclient.cli import app
 
 # TODO: overall test structure not great, needs refactoring
@@ -36,7 +35,10 @@ TEST_COLLECTION = (
 
 class FakeHeadResp:
     status_code = 200
-    headers = {}
+
+    # headers = {}
+    def __init__(self):
+        self.headers = {}
 
 
 class FakeGetResp:
@@ -79,12 +81,18 @@ def test_with_collection():
 @pytest.mark.parametrize(
     "versions, expected",
     [
-        (["2026-09-17", "2026-09-18", "2025-12-31"], ["2026-09-18", "2026-09-17", "2025-12-31"]),  # ISO date
-        (["2026.09.17", "2026.10.01", "2026.09.05"], ["2026.10.01", "2026.09.17", "2026.09.05"]),  # CalVer
-        (["9", "10", "1"], ["10", "9", "1"]),                                                     # Numeric
-        (["2.9", "2.10", "2.1"], ["2.10", "2.9", "2.1"]),                                         # Dotted numeric
-        (["2.9.0", "2.10.0", "2.1.0"], ["2.10.0", "2.9.0", "2.1.0"]),                             # SemVer
-        (["v2.9.0", "v2.10.0", "v2.1.0"], ["v2.10.0", "v2.9.0", "v2.1.0"]),                       # v-prefix
+        (
+            ["2026-09-17", "2026-09-18", "2025-12-31"],
+            ["2026-09-18", "2026-09-17", "2025-12-31"],
+        ),  # ISO date
+        (
+            ["2026.09.17", "2026.10.01", "2026.09.05"],
+            ["2026.10.01", "2026.09.17", "2026.09.05"],
+        ),  # CalVer
+        (["9", "10", "1"], ["10", "9", "1"]),  # Numeric
+        (["2.9", "2.10", "2.1"], ["2.10", "2.9", "2.1"]),  # Dotted numeric
+        (["2.9.0", "2.10.0", "2.1.0"], ["2.10.0", "2.9.0", "2.1.0"]),  # SemVer
+        (["v2.9.0", "v2.10.0", "v2.1.0"], ["v2.10.0", "v2.9.0", "v2.1.0"]),  # v-prefix
     ],
 )
 def test_parse_version_key_sorting(versions, expected):
@@ -110,24 +118,30 @@ def test_get_databus_versions_sorts_stable_before_matching_prerelease():
     assert _get_databus_versions_of_artifact(artifact, all_versions=False) == stable_url
 
 
-
 def test_404_records_failed_manifest_entry(monkeypatch):
-    from databusclient.manifest.context import ManifestContext
     import databusclient.api.download as dl
+    from databusclient.manifest.context import ManifestContext
 
     class FakeGetResp:
         status_code = 404
-        headers = {"content-length": "0"}
+        # headers = {"content-length": "0"}
+        def __init__(self):
+            self.headers = {"content-length":"0"}
 
         def raise_for_status(self):
             import requests
+
             raise requests.exceptions.HTTPError(response=self)
 
     monkeypatch.setattr("requests.head", lambda *a, **k: FakeHeadResp())
     monkeypatch.setattr("requests.get", lambda *a, **k: FakeGetResp())
 
     ctx = ManifestContext(command="download")
-    dl._download_file("https://databus.dbpedia.org/account/notexisting", localDir=".", manifest_context=ctx)
+    dl._download_file(
+        "https://databus.dbpedia.org/account/notexisting",
+        localDir=".",
+        manifest_context=ctx,
+    )
 
     assert len(ctx.files) == 1
     assert ctx.files[0]["status"] == "failed"
@@ -180,7 +194,9 @@ def test_failed_download_does_not_create_graph_sidecar(monkeypatch, tmp_path):
 
     class FakeGet404Resp:
         status_code = 404
-        headers = {"content-length": "0"}
+        # headers = {"content-length": "0"}
+        def __init__(self):
+            self.headers = {"content-length": "0"}
 
         def raise_for_status(self):
             import requests
