@@ -186,6 +186,28 @@ def test_get_databus_versions_sorts_stable_before_matching_prerelease():
     assert _get_databus_versions_of_artifact(artifact, all_versions=False) == stable_url
 
 
+def test_get_databus_versions_sorts_prerelease_identifiers_numerically():
+    stable_url = "https://databus.example.org/account/group/artifact/2.10.0"
+    rc1_url = f"{stable_url}-rc.1"
+    rc2_url = f"{stable_url}-rc.2"
+    artifact = json.dumps(
+        {
+            "databus:hasVersion": [
+                {"@id": rc1_url},
+                {"@id": stable_url},
+                {"@id": rc2_url},
+            ]
+        }
+    )
+
+    assert _get_databus_versions_of_artifact(artifact, all_versions=True) == [
+        stable_url,
+        rc2_url,
+        rc1_url,
+    ]
+    assert _get_databus_versions_of_artifact(artifact, all_versions=False) == stable_url
+
+
 def test_404_records_failed_manifest_entry(monkeypatch):
     import databusclient.api.download as dl
     from databusclient.manifest.context import ManifestContext

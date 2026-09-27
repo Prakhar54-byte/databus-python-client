@@ -1241,13 +1241,25 @@ def _parse_version_key(url: str) -> tuple:
 
     Splits the trailing version segment by non-digit characters and compares each
     part as an integer, so '2.10.0' correctly sorts after '2.9.0' (unlike plain
-    lexicographic sort where '2.9' > '2.10' as strings).
+    lexicographic sort where '2.9' > '2.10' as strings). Stable releases sort
+    ahead of prereleases, whose identifiers are compared individually.
     """
     segment = url.rstrip("/").split("/")[-1]
     prerelease = re.search(r"-(?=[A-Za-z])", segment)
     numeric_segment = segment[: prerelease.start()] if prerelease else segment
     parts = re.split(r"[^0-9]+", numeric_segment)
-    return (tuple(int(p) for p in parts if p.isdigit()), not bool(prerelease))
+    prerelease_key = ()
+    if prerelease:
+        identifiers = re.split(r"[.-]", segment[prerelease.start() + 1 :])
+        prerelease_key = tuple(
+            (1, int(identifier)) if identifier.isdigit() else (0, identifier.lower())
+            for identifier in identifiers
+        )
+    return (
+        tuple(int(p) for p in parts if p.isdigit()),
+        not bool(prerelease),
+        prerelease_key,
+    )
 
 
 def _get_databus_versions_of_artifact(
