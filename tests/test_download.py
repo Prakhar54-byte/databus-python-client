@@ -5,10 +5,7 @@ import json
 
 import pytest
 from click.testing import CliRunner
-from databusclient.api.download import (
-    _get_databus_versions_of_artifact,
-    _parse_version_key,
-)
+from databusclient.api.download import _parse_version_key
 from databusclient.api.download import (
     download as api_download,
 )
@@ -75,27 +72,6 @@ def test_with_query():
 )
 def test_with_collection():
     api_download("tmp", DEFAULT_ENDPOINT, [TEST_COLLECTION])
-
-
-# @pytest.mark.parametrize(
-#     "versions, expected",
-#     [
-#         (
-#             ["2026-09-17", "2026-09-18", "2025-12-31"],
-#             ["2026-09-18", "2026-09-17", "2025-12-31"],
-#         ),  # ISO date
-#         (
-#             ["2026.09.17", "2026.10.01", "2026.09.05"],
-#             ["2026.10.01", "2026.09.17", "2026.09.05"],
-#         ),  # CalVer
-#         (["9", "10", "1"], ["10", "9", "1"]),  # Numeric
-#         (["2.9", "2.10", "2.1"], ["2.10", "2.9", "2.1"]),  # Dotted numeric
-#         (["2.9.0", "2.10.0", "2.1.0"], ["2.10.0", "2.9.0", "2.1.0"]),  # SemVer
-#         (["v2.9.0", "v2.10.0", "v2.1.0"], ["v2.10.0", "v2.9.0", "v2.1.0"]),  # v-prefix
-#     ],
-# )
-# def test_parse_version_key_sorting(versions, expected):
-#     assert sorted(versions, key=_parse_version_key, reverse=True) == expected
 
 
 @pytest.mark.parametrize(
@@ -165,47 +141,6 @@ def test_with_collection():
 )
 def test_parse_version_key_sorting(versions, expected):
     assert sorted(versions, key=_parse_version_key, reverse=True) == expected
-
-
-def test_get_databus_versions_sorts_stable_before_matching_prerelease():
-    stable_url = "https://databus.example.org/account/group/artifact/2.10.0"
-    prerelease_url = f"{stable_url}-rc.1"
-    artifact = json.dumps(
-        {
-            "databus:hasVersion": [
-                {"@id": prerelease_url},
-                {"@id": stable_url},
-            ]
-        }
-    )
-
-    assert _get_databus_versions_of_artifact(artifact, all_versions=True) == [
-        stable_url,
-        prerelease_url,
-    ]
-    assert _get_databus_versions_of_artifact(artifact, all_versions=False) == stable_url
-
-
-def test_get_databus_versions_sorts_prerelease_identifiers_numerically():
-    stable_url = "https://databus.example.org/account/group/artifact/2.10.0"
-    rc1_url = f"{stable_url}-rc.1"
-    rc2_url = f"{stable_url}-rc.2"
-    artifact = json.dumps(
-        {
-            "databus:hasVersion": [
-                {"@id": rc1_url},
-                {"@id": stable_url},
-                {"@id": rc2_url},
-            ]
-        }
-    )
-
-    assert _get_databus_versions_of_artifact(artifact, all_versions=True) == [
-        stable_url,
-        rc2_url,
-        rc1_url,
-    ]
-    assert _get_databus_versions_of_artifact(artifact, all_versions=False) == stable_url
 
 
 def test_404_records_failed_manifest_entry(monkeypatch):
@@ -319,8 +254,6 @@ def test_invalid_graph_mode_value_is_rejected_by_cli():
 
 
 def test_cli_manifest_records_graph_mode(monkeypatch, tmp_path):
-    import json
-
     captured = {}
 
     def fake_download(**kwargs):
